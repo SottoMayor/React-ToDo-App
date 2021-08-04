@@ -1,9 +1,10 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useMemo, useCallback } from 'react';
 import { v4 as uuid } from 'uuid';
+import Button from './components/UI/Button/Button';
 
 const App = () => {
 
-    const [ tasks, setTasks ] = useState([
+     const [ tasks, setTasks ] = useState([
         {
             id: uuid(),
             title: 'Cachorro',
@@ -37,14 +38,19 @@ const App = () => {
         status: 'OPEN'
     });
 
-
+    // Puxar dados do localStorage
+    useEffect(() => {
+        const getTasks = localStorage.getItem('tarefas');
+        setTasks( JSON.parse(getTasks) )
+    }, [])
+    
+    // Atualização
     useEffect(() => {
         localStorage.setItem('tarefas', JSON.stringify(tasks))
     }, [tasks])
+    
 
-
-
-    const addTaskHandler = (event) => {
+    const addTaskHandler = useCallback((event) => {
         event.preventDefault();
 
         // Criando nova tarefa
@@ -59,11 +65,27 @@ const App = () => {
         // Apagando as entradas do usuário, após a submissão do form
         setNewTask({ ...newTask, title: '', text: '' })
         
+    }, [newTask])
+
+    const AttStattusHandler = (identifier) => {
+        const findIndexTask = tasks.findIndex( task => identifier === task.id );
+
+        const updatedTasks = [...tasks];
+
+        updatedTasks[findIndexTask].status = updatedTasks[findIndexTask].status === 'OPEN' ? 'DONE' : 'OPEN'
+
+        setTasks(updatedTasks);
+        
     }
 
+    // useMemo: É um meio de otimização de React para não re-renderizarmos componentes de maneira desnecessária, dessa forma a performance aumenta!
+    // useMemo vs useCallback: O useCallback também é um meio de otimização, mas ele é restrito a funções. Usamo-lo geralmente em métodos ou handlers.
     return (
         <div>
-        
+        <br/>
+        <h2>Quantidade de Tarefas: { useMemo( () =>  tasks.length, [tasks] ) }</h2>
+        <br/>
+
         <form onSubmit={addTaskHandler}>
             <div>
                 <label>Título</label>
@@ -74,19 +96,20 @@ const App = () => {
                 <input type='text' value={newTask.text} onChange={(event) => setNewTask({ ...newTask, text: event.target.value })}/>
             </div>
 
-            <button type='submit'>Adicionar Tarefa</button>
+            <Button buttonType='submit'>Adicionar Tarefa</Button>
         </form>
             
         <ul>
-            {
+            {  tasks.length > 0 &&
                 tasks.map( task => (
-                    <li key={task.id}>
+                    <li key={task.id} onClick={() => AttStattusHandler(task.id)}>
                         <div>{task.title}</div>
                         <div>{task.text}</div>
                         <div>{task.status}</div>
                     </li>
                 ))
             }
+            {tasks.length === 0 && <p>Adicione sua primeira tarefa!!</p>}
         </ul>
         
         </div>
